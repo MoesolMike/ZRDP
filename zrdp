@@ -1,0 +1,1427 @@
+#!/usr/bin/env python3
+"""
+ZRDP, an XFreeRDP GUI Wrapper with Color Preferences and Smartcard Support.
+Package: zrdp
+Version: 1.0.1.4
+Author: Michael Zietlow
+"""
+
+import tkinter as tk
+from tkinter import ttk, messagebox, simpledialog, filedialog
+import json
+import os
+import subprocess
+import threading
+import time
+import base64
+from typing import Dict, Any, List, Tuple
+import tkinter.font as tkfont
+from tkinter import Canvas
+import re
+import logging
+
+class Theme:
+    """Centralized theme management system"""
+    
+    THEMES = {
+        "Dark Professional": {
+            "name": "Dark Professional",
+            "description": "Clean dark theme for professional environments",
+            "colors": {
+                "primary_bg": "#2d3142",
+                "secondary_bg": "#3d4454", 
+                "accent": "#4f5b66",
+                "text_primary": "#f1f3f4",
+                "text_secondary": "#c9cccf",
+                "highlight": "#5cb3cc",
+                "success": "#4caf50",
+                "warning": "#ff9800",
+                "error": "#f44336",
+                "border": "#4a5568"
+            },
+            "fonts": {
+                "default": ("Segoe UI", 10),
+                "heading": ("Segoe UI", 12, "bold"),
+                "button": ("Segoe UI", 9),
+                "monospace": ("Consolas", 9)
+            },
+            "spacing": {
+                "small": 4,
+                "medium": 8,
+                "large": 16,
+                "frame_pad": 12
+            }
+        },
+        
+        "Light Modern": {
+            "name": "Light Modern",
+            "description": "Clean light theme with modern aesthetics",
+            "colors": {
+                "primary_bg": "#ffffff",
+                "secondary_bg": "#f5f7fa",
+                "accent": "#e2e8f0",
+                "text_primary": "#2d3748",
+                "text_secondary": "#4a5568",
+                "highlight": "#3182ce",
+                "success": "#38a169",
+                "warning": "#d69e2e",
+                "error": "#e53e3e",
+                "border": "#cbd5e0"
+            },
+            "fonts": {
+                "default": ("Segoe UI", 10),
+                "heading": ("Segoe UI", 12, "bold"),
+                "button": ("Segoe UI", 9),
+                "monospace": ("Consolas", 9)
+            },
+            "spacing": {
+                "small": 4,
+                "medium": 8,
+                "large": 16,
+                "frame_pad": 12
+            }
+        },
+        
+        "Ubuntu Style": {
+            "name": "Ubuntu Style",
+            "description": "Ubuntu-inspired orange and dark theme",
+            "colors": {
+                "primary_bg": "#2c001e",
+                "secondary_bg": "#3d0029",
+                "accent": "#5e2750",
+                "text_primary": "#ffffff",
+                "text_secondary": "#e0e0e0",
+                "highlight": "#e95420",
+                "success": "#4caf50",
+                "warning": "#ff9800",
+                "error": "#f44336",
+                "border": "#5e2750"
+            },
+            "fonts": {
+                "default": ("Ubuntu", 10),
+                "heading": ("Ubuntu", 12, "bold"),
+                "button": ("Ubuntu", 9),
+                "monospace": ("Ubuntu Mono", 9)
+            },
+            "spacing": {
+                "small": 6,
+                "medium": 12,
+                "large": 18,
+                "frame_pad": 15
+            }
+        },
+        
+        "Arctic Blue": {
+            "name": "Arctic Blue",
+            "description": "Cool blue theme with excellent contrast",
+            "colors": {
+                "primary_bg": "#1b2951",
+                "secondary_bg": "#2c3e50",
+                "accent": "#34495e",
+                "text_primary": "#ecf0f1",
+                "text_secondary": "#bdc3c7",
+                "highlight": "#3498db",
+                "success": "#27ae60",
+                "warning": "#f39c12",
+                "error": "#e74c3c",
+                "border": "#34495e"
+            },
+            "fonts": {
+                "default": ("Segoe UI", 10),
+                "heading": ("Segoe UI", 12, "bold"),
+                "button": ("Segoe UI", 9),
+                "monospace": ("Consolas", 9)
+            },
+            "spacing": {
+                "small": 4,
+                "medium": 8,
+                "large": 16,
+                "frame_pad": 12
+            }
+        },
+        
+        "High Contrast": {
+            "name": "High Contrast",
+            "description": "Maximum contrast for accessibility",
+            "colors": {
+                "primary_bg": "#000000",
+                "secondary_bg": "#1a1a1a",
+                "accent": "#333333",
+                "text_primary": "#ffffff",
+                "text_secondary": "#cccccc",
+                "highlight": "#00ff00",
+                "success": "#00ff00",
+                "warning": "#ffff00",
+                "error": "#ff0000",
+                "border": "#ffffff"
+            },
+            "fonts": {
+                "default": ("Segoe UI", 11, "bold"),
+                "heading": ("Segoe UI", 14, "bold"),
+                "button": ("Segoe UI", 10, "bold"),
+                "monospace": ("Consolas", 10, "bold")
+            },
+            "spacing": {
+                "small": 8,
+                "medium": 16,
+                "large": 24,
+                "frame_pad": 20
+            }
+        }
+    }
+    
+    def __init__(self, theme_name: str = "Dark Professional"):
+        self.current_theme = theme_name
+        self.theme_data = self.THEMES.get(theme_name, self.THEMES["Dark Professional"])
+    
+    def get_color(self, color_key: str) -> str:
+        """Get a color value from the current theme"""
+        return self.theme_data["colors"].get(color_key, "#000000")
+    
+    def get_font(self, font_key: str) -> tuple:
+        """Get a font tuple from the current theme"""
+        return self.theme_data["fonts"].get(font_key, ("Segoe UI", 10))
+    
+    def get_spacing(self, spacing_key: str) -> int:
+        """Get a spacing value from the current theme"""
+        return self.theme_data["spacing"].get(spacing_key, 8)
+    
+    def apply_to_style(self, style: ttk.Style):
+        """Apply theme to ttk.Style object"""
+        colors = self.theme_data["colors"]
+        fonts = self.theme_data["fonts"]
+        
+        # Configure basic styles
+        style.configure("TFrame", 
+                       background=colors["primary_bg"],
+                       borderwidth=0)
+        
+        style.configure("TLabel", 
+                       background=colors["primary_bg"], 
+                       foreground=colors["text_primary"], 
+                       font=fonts["default"])
+        
+        style.configure("TLabelFrame", 
+                       background=colors["primary_bg"], 
+                       foreground=colors["text_primary"], 
+                       font=fonts["heading"],
+                       borderwidth=1,
+                       relief="solid",
+                       bordercolor=colors["border"])
+        
+        style.configure("TButton", 
+                       background=colors["accent"], 
+                       foreground=colors["text_primary"], 
+                       font=fonts["button"],
+                       padding=(8, 4),
+                       borderwidth=1,
+                       focuscolor="none")
+        style.map("TButton", 
+                  background=[("active", colors["highlight"]), 
+                             ("pressed", colors["highlight"])],
+                  foreground=[("active", "#FFFFFF")])
+        
+        style.configure("TEntry", 
+                       fieldbackground=colors["secondary_bg"], 
+                       foreground=colors["text_primary"], 
+                       insertcolor=colors["text_primary"],
+                       borderwidth=1,
+                       relief="solid")
+        style.map("TEntry", 
+                  focuscolor=[("focus", colors["highlight"])])
+        
+        style.configure("TCombobox", 
+                       fieldbackground=colors["secondary_bg"], 
+                       foreground=colors["text_primary"],
+                       borderwidth=1,
+                       arrowcolor=colors["text_primary"])
+        style.map("TCombobox", 
+                  focuscolor=[("focus", colors["highlight"])])
+        
+        # Special styling for smartcard combobox
+        style.configure("Smartcard.TCombobox",
+                       fieldbackground="#ffffff",
+                       foreground="#000000",
+                       borderwidth=1,
+                       arrowcolor="#000000")
+        
+        style.configure("TCheckbutton", 
+                       background=colors["primary_bg"], 
+                       foreground=colors["text_primary"], 
+                       font=fonts["default"],
+                       focuscolor="none")
+        
+        style.configure("TNotebook", 
+                       background=colors["primary_bg"],
+                       borderwidth=0)
+        
+        style.configure("TNotebook.Tab", 
+                       background=colors["secondary_bg"], 
+                       foreground=colors["text_primary"],
+                       padding=[20, 8],
+                       font=fonts["default"])
+        style.map("TNotebook.Tab", 
+                  background=[("selected", colors["highlight"]), 
+                             ("active", colors["accent"])],
+                  foreground=[("selected", "#FFFFFF")])
+
+class SmartcardManager:
+    """Handles smartcard detection and parsing"""
+    
+    def __init__(self, xfreerdp_path: str):
+        self.xfreerdp_path = xfreerdp_path
+    
+    def detect_smartcards(self) -> List[Dict[str, str]]:
+        """Detect available smartcards using xfreerdp /list:smartcard"""
+        try:
+            result = subprocess.run([self.xfreerdp_path, '/list:smartcard'], 
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                return []
+            
+            return self.parse_smartcard_output(result.stdout)
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError) as e:
+            logging.error(f"Smartcard detection failed: {e}")
+            return []
+    
+    def parse_smartcard_output(self, output: str) -> List[Dict[str, str]]:
+        """Parse xfreerdp smartcard output into structured data"""
+        cards = []
+        lines = output.strip().split('\n')
+        
+        current_card = {}
+        for line in lines:
+            line = line.strip()
+            
+            if 'smartcard reader detected' in line or not line:
+                continue
+            
+            if re.match(r'^\d+:', line):
+                if current_card:
+                    cards.append(current_card)
+                
+                dn_part = line.split(':', 1)[1].strip()
+                current_card = {'dn': dn_part}
+                
+                cn_match = re.search(r'CN\s*=\s*([^,]+)', dn_part)
+                current_card['cn'] = cn_match.group(1).strip() if cn_match else 'Unknown'
+                
+            elif line.startswith('* reader:'):
+                reader = line.split(':', 1)[1].strip()
+                current_card['reader'] = reader
+                current_card['reader_name'] = reader.split()[0] if reader else ''
+                
+            elif line.startswith('* CSP:'):
+                current_card['csp'] = line.split(':', 1)[1].strip()
+                
+            elif line.startswith('* slotId:'):
+                current_card['slot_id'] = line.split(':', 1)[1].strip()
+                
+            elif line.startswith('* pkinitArgs:'):
+                current_card['pkinit_args'] = line.split(':', 1)[1].strip()
+                
+            elif line.startswith('* containerName:'):
+                current_card['container_name'] = line.split(':', 1)[1].strip()
+                
+            elif line.startswith('* UPN:'):
+                current_card['upn'] = line.split(':', 1)[1].strip()
+        
+        if current_card:
+            cards.append(current_card)
+        
+        return cards
+
+class XFreeRDPWrapper:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("ZRDP - XfreeRDP Wrapper(1.0.1.4)")
+        self.root.geometry("950x900")
+        
+        # Set window icon
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), "zrdp_icon.png")
+            if os.path.exists(icon_path):
+                icon = tk.PhotoImage(file=icon_path)
+                self.root.iconphoto(True, icon)
+                self.icon = icon  # Keep a reference to prevent garbage collection
+            else:
+                logging.warning(f"Icon file not found: {icon_path}")
+        except Exception as e:
+            logging.error(f"Failed to set icon: {e}")
+
+        # Configuration file path
+        self.config_file = os.path.expanduser("~/.xfreerdp_profiles.json")
+        self.profiles = self.load_profiles()
+        
+        # Load preferences
+        preferences = self.profiles.get("preferences", {})
+        self.xfreerdp_path = preferences.get("xfreerdp_path", "/usr/local/bin/xfreerdp")
+        theme_name = preferences.get("theme", "Dark Professional")
+        
+        # Configure logging
+        self.configure_logging()
+        
+        # Initialize theme and apply it
+        self.theme = Theme(theme_name)
+        self.style = ttk.Style()
+        self.style.theme_use("clam")
+        self.apply_theme()
+        
+        # Initialize other components
+        self.smartcard_manager = SmartcardManager(self.xfreerdp_path)
+        self.connection_processes = []
+        self.smartcards = []
+        
+        self.create_widgets()
+        self.load_profile_list()
+        self.refresh_smartcards()
+
+    def configure_logging(self):
+        """Configure logging based on preferences"""
+        log_dir = self.profiles.get("preferences", {}).get("log_dir", os.path.expanduser("~/zrdp.log"))
+        log_level = self.profiles.get("preferences", {}).get("log_level", "INFO")
+        
+        # Ensure log directory exists
+        log_dir = os.path.expanduser(log_dir)
+        log_dir_path = os.path.dirname(log_dir)
+        if log_dir_path and not os.path.exists(log_dir_path):
+            os.makedirs(log_dir_path)
+        
+        # Configure logging
+        logging.basicConfig(
+            level=getattr(logging, log_level, logging.INFO),
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_dir),
+                # logging.StreamHandler()  # Commented out to suppress console output
+            ]
+        )
+        
+        # Redirect print statements to logger
+        def print_to_log(*args, **kwargs):
+            logging.info(' '.join(map(str, args)))
+        
+        import builtins
+        builtins.print = print_to_log
+
+    def apply_theme(self):
+        """Apply the current theme to all widgets"""
+        # Apply to root window
+        self.root.configure(bg=self.theme.get_color("primary_bg"))
+        
+        # Apply to ttk style
+        self.theme.apply_to_style(self.style)
+
+    def create_widgets(self):
+        """Create GUI widgets with theme-aware styling"""
+        spacing = self.theme.get_spacing
+        colors = self.theme.theme_data["colors"]
+        fonts = self.theme.theme_data["fonts"]
+        
+        # Header frame
+        header_frame = ttk.Frame(self.root)
+        header_frame.pack(fill=tk.X, padx=spacing("medium"), pady=(spacing("medium"), 0))
+        
+        header_label = ttk.Label(header_frame, 
+                                text="ZRDP - XfreeRDP Wrapper(v1.0.1.4)", 
+                                font=self.theme.get_font("heading"))
+        header_label.pack()
+        
+        # Main notebook
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill=tk.BOTH, expand=True, 
+                          padx=spacing("medium"), 
+                          pady=spacing("medium"))
+        
+        # Create tabs
+        self.create_connection_tab()
+        self.create_preferences_tab()
+        
+        # Status bar
+        self.status_var = tk.StringVar(value="Ready")
+        self.status_bar = ttk.Label(self.root, textvariable=self.status_var, 
+                                   relief=tk.FLAT, font=self.theme.get_font("default"))
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X, padx=spacing("medium"))
+
+    def create_connection_tab(self):
+        """Create the main connection configuration tab"""
+        conn_frame = ttk.Frame(self.notebook)
+        self.notebook.add(conn_frame, text="Connection")
+        
+        spacing = self.theme.get_spacing
+        
+        # Profile management section
+        self.create_profile_section(conn_frame)
+        
+        # Connection settings section
+        self.create_connection_settings_section(conn_frame)
+        
+        # Control buttons
+        self.create_control_buttons(conn_frame)
+
+    def create_profile_section(self, parent):
+        """Create profile management section"""
+        spacing = self.theme.get_spacing
+        
+        profile_frame = ttk.LabelFrame(parent, text="Profile Management", 
+                                     padding=spacing("frame_pad"))
+        profile_frame.pack(fill=tk.X, pady=(0, spacing("medium")))
+        
+        # Profile list
+        ttk.Label(profile_frame, text="Profiles:").grid(row=0, column=0, sticky=tk.W, 
+                                                       padx=(0, spacing("medium")), 
+                                                       pady=spacing("small"))
+        
+        self.profile_listbox = tk.Listbox(profile_frame, height=5, width=30,
+                                         bg=self.theme.get_color("secondary_bg"),
+                                         fg=self.theme.get_color("text_primary"),
+                                         selectbackground=self.theme.get_color("highlight"),
+                                         font=self.theme.get_font("default"))
+        self.profile_listbox.grid(row=0, column=1, padx=(0, spacing("medium")), 
+                                pady=spacing("small"))
+        self.profile_listbox.bind('<<ListboxSelect>>', self.on_profile_selected)
+        
+        # Profile buttons
+        button_frame = ttk.Frame(profile_frame)
+        button_frame.grid(row=0, column=2, sticky=tk.NW, padx=spacing("small"))
+        
+        self.connect_btn = ttk.Button(button_frame, text="Connect", 
+                                    command=self.connect)
+        self.connect_btn.pack(fill=tk.X, pady=(0, spacing("small")))
+        
+        ttk.Button(button_frame, text="Load", 
+                  command=self.load_selected_profile).pack(fill=tk.X, pady=(0, spacing("small")))
+        ttk.Button(button_frame, text="Save", 
+                  command=self.save_current_profile).pack(fill=tk.X, pady=(0, spacing("small")))
+        ttk.Button(button_frame, text="Delete", 
+                  command=self.delete_profile).pack(fill=tk.X, pady=(0, spacing("small")))
+        ttk.Button(button_frame, text="New", 
+                  command=self.new_profile).pack(fill=tk.X)
+
+    def create_connection_settings_section(self, parent):
+        """Create connection settings section"""
+        spacing = self.theme.get_spacing
+        
+        settings_frame = ttk.LabelFrame(parent, text="Connection Settings", 
+                                      padding=spacing("frame_pad"))
+        settings_frame.pack(fill=tk.BOTH, expand=True, pady=(0, spacing("medium")))
+        
+        # Basic connection settings
+        ttk.Label(settings_frame, text="Server:").grid(row=0, column=0, sticky=tk.W, 
+                                                      padx=(0, spacing("small")), 
+                                                      pady=spacing("small"))
+        self.server_var = tk.StringVar()
+        ttk.Entry(settings_frame, textvariable=self.server_var, width=40).grid(
+            row=0, column=1, sticky=tk.EW, padx=(0, spacing("small")), pady=spacing("small"))
+        
+        ttk.Label(settings_frame, text="Port:").grid(row=0, column=2, sticky=tk.W, 
+                                                    padx=(spacing("medium"), spacing("small")), 
+                                                    pady=spacing("small"))
+        self.port_var = tk.StringVar(value="3389")
+        ttk.Entry(settings_frame, textvariable=self.port_var, width=10).grid(
+            row=0, column=3, padx=(0, spacing("small")), pady=spacing("small"))
+        
+        ttk.Label(settings_frame, text="Username:").grid(row=1, column=0, sticky=tk.W, 
+                                                        padx=(0, spacing("small")), 
+                                                        pady=spacing("small"))
+        self.username_var = tk.StringVar()
+        ttk.Entry(settings_frame, textvariable=self.username_var, width=40).grid(
+            row=1, column=1, sticky=tk.EW, padx=(0, spacing("small")), pady=spacing("small"))
+        
+        ttk.Label(settings_frame, text="Domain:").grid(row=1, column=2, sticky=tk.W, 
+                                                      padx=(spacing("medium"), spacing("small")), 
+                                                      pady=spacing("small"))
+        self.domain_var = tk.StringVar(value="moesol.local")
+        ttk.Entry(settings_frame, textvariable=self.domain_var, width=15).grid(
+            row=1, column=3, padx=(0, spacing("small")), pady=spacing("small"))
+        
+        # Create subsections
+        self.create_security_section(settings_frame)
+        self.create_smartcard_section(settings_frame)
+        self.create_display_section(settings_frame)
+        self.create_notes_section(settings_frame)
+        
+        # Configure column weights
+        settings_frame.grid_columnconfigure(1, weight=1)
+
+    def create_security_section(self, parent):
+        """Create security settings section"""
+        spacing = self.theme.get_spacing
+        
+        security_frame = ttk.LabelFrame(parent, text="Security Settings", 
+                                      padding=spacing("small"))
+        security_frame.grid(row=2, column=0, columnspan=4, sticky=tk.EW, 
+                          pady=(spacing("medium"), 0))
+        
+        # Security variables
+        self.sec_nla_var = tk.BooleanVar(value=True)
+        self.sec_tls_var = tk.BooleanVar(value=True)
+        self.sec_ext_var = tk.BooleanVar(value=True)
+        self.cert_ignore_var = tk.BooleanVar(value=True)
+        self.fips_var = tk.BooleanVar(value=False)
+        self.session_timeout_var = tk.StringVar(value="30")
+        
+        # Security checkboxes
+        ttk.Checkbutton(security_frame, text="NLA (Network Level Authentication)", 
+                       variable=self.sec_nla_var).grid(row=0, column=0, sticky=tk.W, 
+                                                      padx=(0, spacing("medium")), 
+                                                      pady=spacing("small"))
+        ttk.Checkbutton(security_frame, text="TLS", 
+                       variable=self.sec_tls_var).grid(row=0, column=1, sticky=tk.W, 
+                                                      padx=(0, spacing("medium")), 
+                                                      pady=spacing("small"))
+        ttk.Checkbutton(security_frame, text="EXT", 
+                       variable=self.sec_ext_var).grid(row=1, column=0, sticky=tk.W, 
+                                                      padx=(0, spacing("medium")), 
+                                                      pady=spacing("small"))
+        ttk.Checkbutton(security_frame, text="Ignore Certificate", 
+                       variable=self.cert_ignore_var).grid(row=1, column=1, sticky=tk.W, 
+                                                          padx=(0, spacing("medium")), 
+                                                          pady=spacing("small"))
+        ttk.Checkbutton(security_frame, text="FIPS Mode", 
+                       variable=self.fips_var).grid(row=2, column=0, sticky=tk.W, 
+                                                    padx=(0, spacing("medium")), 
+                                                    pady=spacing("small"))
+        
+        ttk.Label(security_frame, text="Session Timeout (min):").grid(row=2, column=1, 
+                                                                     sticky=tk.W, 
+                                                                     padx=(spacing("medium"), spacing("small")), 
+                                                                     pady=spacing("small"))
+        ttk.Entry(security_frame, textvariable=self.session_timeout_var, width=10).grid(
+            row=2, column=2, sticky=tk.W, padx=(0, spacing("small")), pady=spacing("small"))
+
+    def create_smartcard_section(self, parent):
+        """Create smartcard settings section"""
+        spacing = self.theme.get_spacing
+        
+        smartcard_frame = ttk.LabelFrame(parent, text="Smartcard Settings", 
+                                       padding=spacing("small"))
+        smartcard_frame.grid(row=3, column=0, columnspan=4, sticky=tk.EW, 
+                           pady=(spacing("medium"), 0))
+        
+        ttk.Label(smartcard_frame, text="SmartCard:").grid(row=0, column=0, sticky=tk.W, 
+                                                          padx=(0, spacing("small")), 
+                                                          pady=spacing("small"))
+        self.smartcard_var = tk.StringVar(value="None")
+        self.smartcard_combo = ttk.Combobox(smartcard_frame, textvariable=self.smartcard_var, 
+                                          values=["None"], width=50, state="readonly",
+                                          style="Smartcard.TCombobox")
+        self.smartcard_combo.grid(row=0, column=1, sticky=tk.EW, 
+                                padx=(0, spacing("small")), pady=spacing("small"))
+        
+        ttk.Button(smartcard_frame, text="Refresh", 
+                  command=self.refresh_smartcards).grid(row=0, column=2, 
+                                                       padx=(spacing("small"), 0), 
+                                                       pady=spacing("small"))
+        
+        smartcard_frame.grid_columnconfigure(1, weight=1)
+
+    def create_display_section(self, parent):
+        """Create display settings section"""
+        spacing = self.theme.get_spacing
+        
+        display_frame = ttk.LabelFrame(parent, text="Display Settings", 
+                                     padding=spacing("small"))
+        display_frame.grid(row=4, column=0, columnspan=4, sticky=tk.EW, 
+                         pady=(spacing("medium"), 0))
+        
+        ttk.Label(display_frame, text="Screen Size:").grid(row=0, column=0, sticky=tk.W, 
+                                                          padx=(0, spacing("small")), 
+                                                          pady=spacing("small"))
+        self.size_var = tk.StringVar(value="1920x1080")
+        ttk.Entry(display_frame, textvariable=self.size_var, width=15).grid(
+            row=0, column=1, sticky=tk.W, padx=(0, spacing("small")), pady=spacing("small"))
+        
+        self.fullscreen_var = tk.BooleanVar()
+        ttk.Checkbutton(display_frame, text="Fullscreen", 
+                       variable=self.fullscreen_var).grid(row=1, column=0, sticky=tk.W, 
+                                                         padx=(0, spacing("small")), 
+                                                         pady=spacing("small"))
+        
+        ttk.Label(display_frame, text="Color Depth:").grid(row=1, column=1, sticky=tk.W, 
+                                                          padx=(spacing("medium"), spacing("small")), 
+                                                          pady=spacing("small"))
+        self.bpp_var = tk.StringVar(value="32")
+        ttk.Combobox(display_frame, textvariable=self.bpp_var, 
+                    values=["8", "16", "24", "32"], width=10).grid(
+            row=1, column=2, sticky=tk.W, padx=(0, spacing("small")), pady=spacing("small"))
+
+    def create_notes_section(self, parent):
+        """Create FIPS configuration notes section"""
+        spacing = self.theme.get_spacing
+        
+        notes_frame = ttk.LabelFrame(parent, text="FIPS Configuration Notes", 
+                                   padding=spacing("small"))
+        notes_frame.grid(row=5, column=0, columnspan=4, sticky=tk.EW, 
+                       pady=(spacing("medium"), 0))
+        
+        notes_text = """For RDP to work over FIPS, servers must be registered with Kerberos using setspn.
+
+All Kerberos servers should be listed in TERMSRV/<SERVER_FQDN> <SERVER_SHORT_NAME>
+
+Example:
+C:> setspn -A TERMSRV/server3.domain.com SERVER3
+
+This ensures proper Kerberos authentication in FIPS-compliant environments."""
+        
+        self.notes_text_widget = tk.Text(notes_frame, height=6, width=80, wrap=tk.WORD,
+                                        bg=self.theme.get_color("secondary_bg"),
+                                        fg=self.theme.get_color("text_primary"),
+                                        font=self.theme.get_font("monospace"), 
+                                        relief=tk.FLAT, borderwidth=1)
+        self.notes_text_widget.grid(row=0, column=0, sticky=tk.EW, 
+                                  padx=spacing("small"), pady=spacing("small"))
+        self.notes_text_widget.insert('1.0', notes_text)
+        self.notes_text_widget.config(state=tk.DISABLED)
+        
+        notes_scrollbar = ttk.Scrollbar(notes_frame, orient=tk.VERTICAL, 
+                                      command=self.notes_text_widget.yview)
+        notes_scrollbar.grid(row=0, column=1, sticky=tk.NS, pady=spacing("small"))
+        self.notes_text_widget.config(yscrollcommand=notes_scrollbar.set)
+        
+        notes_frame.grid_columnconfigure(0, weight=1)
+
+    def create_control_buttons(self, parent):
+        """Create control buttons"""
+        spacing = self.theme.get_spacing
+        
+        button_frame = ttk.Frame(parent)
+        button_frame.pack(fill=tk.X, pady=(spacing("medium"), 0))
+        
+        self.disconnect_btn = ttk.Button(button_frame, text="Disconnect All", 
+                                       command=self.disconnect_all)
+        self.disconnect_btn.pack(side=tk.LEFT, padx=(0, spacing("small")))
+        
+        ttk.Button(button_frame, text="Show Active Connections", 
+                  command=self.show_connections).pack(side=tk.LEFT, padx=(0, spacing("small")))
+        ttk.Button(button_frame, text="Test Connection", 
+                  command=self.test_connection).pack(side=tk.LEFT, padx=(0, spacing("small")))
+        ttk.Button(button_frame, text="Show Command", 
+                  command=self.show_command).pack(side=tk.LEFT, padx=(0, spacing("small")))
+        ttk.Button(button_frame, text="Clear Form", 
+                  command=self.clear_form).pack(side=tk.LEFT, padx=(0, spacing("small")))
+
+    def create_preferences_tab(self):
+        """Create the preferences configuration tab"""
+        pref_frame = ttk.Frame(self.notebook)
+        self.notebook.add(pref_frame, text="Preferences")
+        
+        spacing = self.theme.get_spacing
+        
+        # XFreeRDP Path Configuration
+        path_frame = ttk.LabelFrame(pref_frame, text="XFreeRDP Configuration", 
+                                  padding=spacing("frame_pad"))
+        path_frame.pack(fill=tk.X, padx=spacing("medium"), pady=spacing("medium"))
+        
+        # XFreeRDP Path
+        ttk.Label(path_frame, text="XFreeRDP Path:").grid(row=0, column=0, sticky=tk.W, 
+                                                         padx=(0, spacing("small")), 
+                                                         pady=spacing("small"))
+        self.xfreerdp_path_var = tk.StringVar(value=self.xfreerdp_path)
+        ttk.Entry(path_frame, textvariable=self.xfreerdp_path_var, width=60).grid(
+            row=0, column=1, sticky=tk.EW, padx=(0, spacing("small")), pady=spacing("small"))
+        
+        ttk.Button(path_frame, text="Browse", 
+                  command=self.browse_xfreerdp_path).grid(row=0, column=2, 
+                                                         padx=(spacing("small"), 0), 
+                                                         pady=spacing("small"))
+        
+        ttk.Button(path_frame, text="Test Path", 
+                  command=self.test_xfreerdp_path).grid(row=1, column=0, sticky=tk.W, 
+                                                       pady=(spacing("small"), 0))
+        
+        # Log Directory
+        ttk.Label(path_frame, text="Log Directory:").grid(row=2, column=0, sticky=tk.W, 
+                                                         padx=(0, spacing("small")), 
+                                                         pady=spacing("small"))
+        self.log_dir_var = tk.StringVar(value=self.profiles.get("preferences", {}).get("log_dir", "~/zrdp.log"))
+        ttk.Entry(path_frame, textvariable=self.log_dir_var, width=60).grid(
+            row=2, column=1, sticky=tk.EW, padx=(0, spacing("small")), pady=spacing("small"))
+        
+        ttk.Button(path_frame, text="Browse", 
+                  command=self.browse_log_dir).grid(row=2, column=2, 
+                                                   padx=(spacing("small"), 0), 
+                                                   pady=spacing("small"))
+        
+        # Logging Level
+        ttk.Label(path_frame, text="Logging Level:").grid(row=3, column=0, sticky=tk.W, 
+                                                         padx=(0, spacing("small")), 
+                                                         pady=spacing("small"))
+        self.log_level_var = tk.StringVar(value=self.profiles.get("preferences", {}).get("log_level", "INFO"))
+        ttk.Combobox(path_frame, textvariable=self.log_level_var, 
+                    values=["OFF", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"], 
+                    width=10, state="readonly").grid(
+            row=3, column=1, sticky=tk.W, padx=(0, spacing("small")), pady=spacing("small"))
+        
+        path_frame.grid_columnconfigure(1, weight=1)
+        
+        # Theme Configuration
+        theme_frame = ttk.LabelFrame(pref_frame, text="Appearance Settings", 
+                                   padding=spacing("frame_pad"))
+        theme_frame.pack(fill=tk.BOTH, expand=True, 
+                        padx=spacing("medium"), pady=(0, spacing("medium")))
+        
+        # Theme selection
+        ttk.Label(theme_frame, text="Theme:").grid(row=0, column=0, sticky=tk.W, 
+                                                  padx=(0, spacing("small")), 
+                                                  pady=spacing("small"))
+        self.theme_var = tk.StringVar(value=self.theme.current_theme)
+        theme_combo = ttk.Combobox(theme_frame, textvariable=self.theme_var, 
+                                 values=list(Theme.THEMES.keys()), 
+                                 width=20, state="readonly")
+        theme_combo.grid(row=0, column=1, sticky=tk.W, 
+                        padx=(0, spacing("small")), pady=spacing("small"))
+        theme_combo.bind('<<ComboboxSelected>>', self.on_theme_changed)
+        
+        # Theme description
+        ttk.Label(theme_frame, text="Description:").grid(row=1, column=0, sticky=tk.NW, 
+                                                        padx=(0, spacing("small")), 
+                                                        pady=spacing("small"))
+        self.theme_desc_var = tk.StringVar()
+        self.update_theme_description()
+        desc_label = ttk.Label(theme_frame, textvariable=self.theme_desc_var, 
+                             wraplength=400)
+        desc_label.grid(row=1, column=1, columnspan=2, sticky=tk.W, 
+                       padx=(0, spacing("small")), pady=spacing("small"))
+        
+        # Theme preview area
+        preview_frame = ttk.LabelFrame(theme_frame, text="Theme Preview", 
+                                     padding=spacing("small"))
+        preview_frame.grid(row=2, column=0, columnspan=3, sticky=tk.EW, 
+                         pady=(spacing("medium"), 0))
+        
+        # Preview elements
+        ttk.Label(preview_frame, text="Sample Text").grid(row=0, column=0, 
+                                                         padx=spacing("small"))
+        ttk.Button(preview_frame, text="Sample Button").grid(row=0, column=1, 
+                                                           padx=spacing("small"))
+        ttk.Entry(preview_frame, width=20).grid(row=0, column=2, 
+                                              padx=spacing("small"))
+        
+        # Control buttons
+        button_frame = ttk.Frame(theme_frame)
+        button_frame.grid(row=3, column=0, columnspan=3, pady=(spacing("medium"), 0))
+        
+        ttk.Button(button_frame, text="Preview Theme", 
+                  command=self.preview_theme).pack(side=tk.LEFT, 
+                                                  padx=(0, spacing("small")))
+        ttk.Button(button_frame, text="Apply & Save", 
+                  command=self.apply_and_save_preferences).pack(side=tk.LEFT, 
+                                                               padx=(0, spacing("small")))
+        ttk.Button(button_frame, text="Reset to Defaults", 
+                  command=self.reset_preferences).pack(side=tk.LEFT)
+
+    def browse_xfreerdp_path(self):
+        """Browse for xfreerdp executable"""
+        initial_dir = os.path.dirname(self.xfreerdp_path_var.get())
+        filename = filedialog.askopenfilename(
+            title="Select XFreeRDP Executable",
+            initialdir=initial_dir,
+            filetypes=[("Executable files", "*"), ("All files", "*.*")]
+        )
+        if filename:
+            self.xfreerdp_path_var.set(filename)
+    
+    def test_xfreerdp_path(self):
+        """Test if the xfreerdp path is valid"""
+        path = self.xfreerdp_path_var.get()
+        if not os.path.exists(path):
+            messagebox.showerror("Error", f"Path does not exist: {path}")
+            logging.error(f"XFreeRDP path does not exist: {path}")
+            return
+        
+        if not os.access(path, os.X_OK):
+            messagebox.showerror("Error", f"File is not executable: {path}")
+            logging.error(f"XFreeRDP file is not executable: {path}")
+            return
+        
+        try:
+            result = subprocess.run([path, '--version'], 
+                                  capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                messagebox.showinfo("Success", f"XFreeRDP found!\n\n{result.stdout.strip()}")
+                logging.info(f"XFreeRDP found: {result.stdout.strip()}")
+            else:
+                messagebox.showwarning("Warning", 
+                                     f"Command executed but returned error code {result.returncode}")
+                logging.warning(f"XFreeRDP test returned error code {result.returncode}")
+        except subprocess.TimeoutExpired:
+            messagebox.showerror("Error", "Command timed out")
+            logging.error("XFreeRDP test command timed out")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to test path: {e}")
+            logging.error(f"Failed to test XFreeRDP path: {e}")
+    
+    def browse_log_dir(self):
+        """Browse for log directory"""
+        initial_dir = os.path.dirname(os.path.expanduser(self.log_dir_var.get()))
+        filename = filedialog.asksavefilename(
+            title="Select Log File",
+            initialdir=initial_dir,
+            initialfile=os.path.basename(self.log_dir_var.get()),
+            filetypes=[("Log files", "*.log"), ("All files", "*.*")]
+        )
+        if filename:
+            self.log_dir_var.set(filename)
+    
+    def on_theme_changed(self, event=None):
+        """Handle theme selection change"""
+        self.update_theme_description()
+    
+    def update_theme_description(self):
+        """Update theme description label"""
+        theme_name = self.theme_var.get()
+        theme_data = Theme.THEMES.get(theme_name, Theme.THEMES["Dark Professional"])
+        self.theme_desc_var.set(theme_data["description"])
+    
+    def preview_theme(self):
+        """Preview the selected theme without saving"""
+        theme_name = self.theme_var.get()
+        old_theme = self.theme.current_theme
+        
+        # Apply new theme
+        self.theme = Theme(theme_name)
+        self.apply_theme()
+        
+        # Update status
+        self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Previewing theme: {theme_name}")
+        logging.info(f"Previewing theme: {theme_name}")
+        
+        # Show preview dialog
+        result = messagebox.askyesno("Theme Preview", 
+                                   f"Do you like the '{theme_name}' theme?\n\n"
+                                   "Click 'Yes' to keep it or 'No' to revert.")
+        
+        if not result:
+            # Revert to old theme
+            self.theme = Theme(old_theme)
+            self.apply_theme()
+            self.theme_var.set(old_theme)
+            self.update_theme_description()
+            self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Reverted to theme: {old_theme}")
+            logging.info(f"Reverted to theme: {old_theme}")
+    
+    def apply_and_save_preferences(self):
+        """Apply and save all preferences"""
+        # Update xfreerdp path
+        new_path = self.xfreerdp_path_var.get()
+        if new_path != self.xfreerdp_path:
+            self.xfreerdp_path = new_path
+            self.smartcard_manager = SmartcardManager(new_path)
+        
+        # Update theme
+        theme_name = self.theme_var.get()
+        self.theme = Theme(theme_name)
+        self.apply_theme()
+        
+        # Save preferences
+        if "preferences" not in self.profiles:
+            self.profiles["preferences"] = {}
+        
+        self.profiles["preferences"]["xfreerdp_path"] = self.xfreerdp_path
+        self.profiles["preferences"]["theme"] = theme_name
+        self.profiles["preferences"]["log_dir"] = self.log_dir_var.get()
+        self.profiles["preferences"]["log_level"] = self.log_level_var.get()
+        
+        self.save_profiles()
+        
+        # Reconfigure logging with new settings
+        self.configure_logging()
+        
+        self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Preferences saved successfully")
+        logging.info("Preferences saved successfully")
+        messagebox.showinfo("Success", "Preferences have been saved successfully!")
+    
+    def reset_preferences(self):
+        """Reset all preferences to defaults"""
+        if messagebox.askyesno("Confirm Reset", 
+                              "This will reset all preferences to defaults. Continue?"):
+            self.xfreerdp_path_var.set("/usr/local/bin/xfreerdp")
+            self.theme_var.set("Dark Professional")
+            self.log_dir_var.set("~/zrdp.log")
+            self.log_level_var.set("INFO")
+            self.update_theme_description()
+            self.configure_logging()
+            self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Preferences reset to defaults")
+            logging.info("Preferences reset to defaults")
+    
+    def refresh_smartcards(self):
+        """Refresh the list of available smartcards"""
+        def refresh_async():
+            try:
+                self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Scanning for smartcards...")
+                logging.info("Scanning for smartcards...")
+                self.smartcards = self.smartcard_manager.detect_smartcards()
+                
+                dropdown_values = ["None"]
+                for card in self.smartcards:
+                    cn = card.get('cn', 'Unknown')
+                    reader = card.get('reader', 'Unknown Reader')
+                    display_name = f"{cn} ({reader})"
+                    dropdown_values.append(display_name)
+                
+                self.root.after(0, self._update_smartcard_dropdown, dropdown_values)
+                
+                status_msg = f"[{time.strftime('%H:%M:%S')}] Found {len(self.smartcards)} smartcard(s)"
+                self.root.after(0, lambda: self.status_var.set(status_msg))
+                logging.info(f"Found {len(self.smartcards)} smartcard(s)")
+                
+            except Exception as e:
+                error_msg = f"[{time.strftime('%H:%M:%S')}] Smartcard scan failed: {e}"
+                self.root.after(0, lambda: self.status_var.set(error_msg))
+                logging.error(f"Smartcard scan failed: {e}")
+        
+        threading.Thread(target=refresh_async, daemon=True).start()
+    
+    def _update_smartcard_dropdown(self, values):
+        """Update smartcard dropdown values (called from main thread)"""
+        current_selection = self.smartcard_var.get()
+        self.smartcard_combo['values'] = values
+        
+        if current_selection not in values:
+            self.smartcard_var.set("None")
+
+    def get_selected_smartcard_reader(self) -> str:
+        """Get the reader name for the selected smartcard"""
+        selection = self.smartcard_var.get()
+        if selection == "None":
+            return ""
+        
+        for card in self.smartcards:
+            cn = card.get('cn', 'Unknown')
+            reader = card.get('reader', 'Unknown Reader')
+            display_name = f"{cn} ({reader})"
+            if display_name == selection:
+                return card.get('reader_name', '')
+        
+        return ""
+
+    def load_profiles(self) -> Dict[str, Any]:
+        """Load profiles from configuration file"""
+        if os.path.exists(self.config_file):
+            try:
+                with open(self.config_file, 'r') as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                messagebox.showerror("Error", f"Failed to load profiles: {e}")
+                logging.error(f"Failed to load profiles: {e}")
+                return {}
+        return {}
+
+    def save_profiles(self):
+        """Save profiles to configuration file"""
+        try:
+            with open(self.config_file, 'w') as f:
+                json.dump(self.profiles, f, indent=2)
+        except IOError as e:
+            messagebox.showerror("Error", f"Failed to save profiles: {e}")
+            logging.error(f"Failed to save profiles: {e}")
+
+    def load_profile_list(self):
+        """Load profile names into the listbox"""
+        self.profile_listbox.delete(0, tk.END)
+        for profile_name in sorted(self.profiles.keys()):
+            if profile_name != "preferences":
+                self.profile_listbox.insert(tk.END, profile_name)
+
+    def on_profile_selected(self, event=None):
+        """Handle profile selection from listbox"""
+        selected = self.profile_listbox.curselection()
+        if selected:
+            profile_name = self.profile_listbox.get(selected[0])
+            self.set_settings(self.profiles[profile_name])
+
+    def load_selected_profile(self):
+        """Load the currently selected profile"""
+        self.on_profile_selected()
+        if self.profile_listbox.curselection():
+            profile_name = self.profile_listbox.get(self.profile_listbox.curselection()[0])
+            self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Loaded profile: {profile_name}")
+            logging.info(f"Loaded profile: {profile_name}")
+
+    def save_current_profile(self):
+        """Save current settings as a new profile"""
+        profile_name = simpledialog.askstring("Save Profile", 
+                                             "Enter profile name:", parent=self.root)
+        if not profile_name:
+            return
+            
+        if profile_name in self.profiles and profile_name != "preferences":
+            if not messagebox.askyesno("Overwrite", 
+                                     f"Profile '{profile_name}' exists. Overwrite?"):
+                return
+                
+        self.profiles[profile_name] = self.get_current_settings()
+        self.save_profiles()
+        self.load_profile_list()
+        self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Saved profile: {profile_name}")
+        logging.info(f"Saved profile: {profile_name}")
+
+    def delete_profile(self):
+        """Delete the selected profile"""
+        selected = self.profile_listbox.curselection()
+        if not selected:
+            messagebox.showwarning("Warning", "No profile selected")
+            logging.warning("No profile selected for deletion")
+            return
+            
+        profile_name = self.profile_listbox.get(selected[0])
+        if messagebox.askyesno("Confirm Delete", f"Delete profile '{profile_name}'?"):
+            del self.profiles[profile_name]
+            self.save_profiles()
+            self.load_profile_list()
+            self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Deleted profile: {profile_name}")
+            logging.info(f"Deleted profile: {profile_name}")
+
+    def new_profile(self):
+        """Clear form for new profile"""
+        self.set_settings({})
+        self.status_var.set(f"[{time.strftime('%H:%M:%S')}] New profile ready")
+        logging.info("New profile ready")
+
+    def clear_form(self):
+        """Clear the form"""
+        self.new_profile()
+        self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Form cleared")
+        logging.info("Form cleared")
+
+    def get_current_settings(self) -> Dict[str, Any]:
+        """Get current form settings as dictionary"""
+        return {
+            'server': self.server_var.get(),
+            'port': self.port_var.get(),
+            'username': self.username_var.get(),
+            'domain': self.domain_var.get(),
+            'size': self.size_var.get(),
+            'fullscreen': self.fullscreen_var.get(),
+            'bpp': self.bpp_var.get(),
+            'sec_nla': self.sec_nla_var.get(),
+            'sec_tls': self.sec_tls_var.get(),
+            'sec_ext': self.sec_ext_var.get(),
+            'cert_ignore': self.cert_ignore_var.get(),
+            'fips': self.fips_var.get(),
+            'session_timeout': self.session_timeout_var.get(),
+            'smartcard': self.smartcard_var.get()
+        }
+
+    def set_settings(self, settings: Dict[str, Any]):
+        """Set form values from settings dictionary"""
+        self.server_var.set(settings.get('server', ''))
+        self.port_var.set(settings.get('port', '3389'))
+        self.username_var.set(settings.get('username', ''))
+        self.domain_var.set(settings.get('domain', ''))
+        self.size_var.set(settings.get('size', '1920x1080'))
+        self.fullscreen_var.set(settings.get('fullscreen', False))
+        self.bpp_var.set(settings.get('bpp', '32'))
+        self.sec_nla_var.set(settings.get('sec_nla', True))
+        self.sec_tls_var.set(settings.get('sec_tls', True))
+        self.sec_ext_var.set(settings.get('sec_ext', True))
+        self.cert_ignore_var.set(settings.get('cert_ignore', True))
+        self.fips_var.set(settings.get('fips', False))
+        self.session_timeout_var.set(settings.get('session_timeout', '30'))
+        
+        smartcard_setting = settings.get('smartcard', 'None')
+        current_values = list(self.smartcard_combo['values'])
+        if smartcard_setting in current_values:
+            self.smartcard_var.set(smartcard_setting)
+        else:
+            self.smartcard_var.set('None')
+
+    def validate_password(self, password: str) -> bool:
+        """Basic password strength validation"""
+        if len(password) < 8:
+            return False
+        has_upper = any(c.isupper() for c in password)
+        has_lower = any(c.islower() for c in password)
+        has_digit = any(c.isdigit() for c in password)
+        has_special = any(c in "!@#$%^&*()_+" for c in password)
+        return has_upper and has_lower and has_digit and has_special
+
+    def build_command(self) -> list:
+        """Build xfreerdp command from current settings"""
+        cmd = [self.xfreerdp_path]
+        
+        if self.server_var.get():
+            cmd.extend(['/v:' + self.server_var.get()])
+        if self.port_var.get() and self.port_var.get() != '3389':
+            cmd.extend(['/port:' + self.port_var.get()])
+        if self.username_var.get():
+            cmd.extend(['/u:' + self.username_var.get()])
+        if self.domain_var.get():
+            cmd.extend(['/d:' + self.domain_var.get()])
+        if self.sec_nla_var.get():
+            cmd.append('/sec:nla')
+        if self.sec_tls_var.get():
+            cmd.append('/sec:tls')
+        if self.sec_ext_var.get():
+            cmd.append('/sec:ext')
+        if self.cert_ignore_var.get():
+            cmd.append('/cert:ignore')
+        if self.fips_var.get():
+            cmd.append('+fipsmode')
+        
+        smartcard_reader = self.get_selected_smartcard_reader()
+        if smartcard_reader:
+            cmd.append(f'/smartcard:{smartcard_reader}')
+        
+        if self.fullscreen_var.get():
+            cmd.append('+f')
+        else:
+            cmd.extend(['/size:' + self.size_var.get()])
+        if self.bpp_var.get():
+            cmd.extend(['/bpp:' + self.bpp_var.get()])
+        if self.session_timeout_var.get():
+            try:
+                timeout = int(self.session_timeout_var.get()) * 60
+                cmd.extend([f'/timeout:{timeout}'])
+            except ValueError:
+                messagebox.showwarning("Warning", "Invalid session timeout value")
+                logging.warning("Invalid session timeout value")
+        
+        # Add logging level
+        log_level = self.profiles.get("preferences", {}).get("log_level", "INFO")
+        if log_level != "OFF":
+            cmd.append(f'/log-level:{log_level}')
+        
+        return cmd
+
+    def show_command(self):
+        """Show the generated xfreerdp command"""
+        cmd = self.build_command()
+        command_str = ' '.join(cmd)
+        
+        cmd_window = tk.Toplevel(self.root)
+        cmd_window.title("Generated Command")
+        cmd_window.geometry("800x200")
+        cmd_window.configure(bg=self.theme.get_color("primary_bg"))
+        
+        text_widget = tk.Text(cmd_window, wrap=tk.WORD, padx=10, pady=10, 
+                             bg=self.theme.get_color("secondary_bg"), 
+                             fg=self.theme.get_color("text_primary"), 
+                             font=self.theme.get_font("monospace"))
+        text_widget.pack(fill=tk.BOTH, expand=True)
+        text_widget.insert('1.0', command_str)
+        text_widget.config(state=tk.DISABLED)
+        
+        def copy_command():
+            cmd_window.clipboard_clear()
+            cmd_window.clipboard_append(command_str)
+            messagebox.showinfo("Copied", "Command copied to clipboard")
+            logging.info("Command copied to clipboard")
+        
+        ttk.Button(cmd_window, text="Copy to Clipboard", 
+                  command=copy_command).pack(pady=10)
+
+    def test_connection(self):
+        """Test network connectivity to server"""
+        if not self.server_var.get():
+            messagebox.showerror("Error", "Server address is required")
+            logging.error("Server address is required for connection test")
+            return
+
+        def ping_test():
+            try:
+                result = subprocess.run(['ping', '-c', '1', '-W', '3', self.server_var.get()], 
+                                      capture_output=True, text=True, timeout=10)
+                status = f"[{time.strftime('%H:%M:%S')}] Server {self.server_var.get()} is "
+                status += "reachable" if result.returncode == 0 else "not reachable"
+                self.status_var.set(status)
+                logging.info(status)
+                
+                if result.returncode == 0:
+                    messagebox.showinfo("Test Result", f"✓ {self.server_var.get()} is reachable")
+                else:
+                    messagebox.showwarning("Test Result", f"✗ {self.server_var.get()} is not reachable")
+                    
+            except (subprocess.TimeoutExpired, subprocess.SubprocessError) as e:
+                error_msg = f"[{time.strftime('%H:%M:%S')}] Connection test failed: {e}"
+                self.status_var.set(error_msg)
+                logging.error(f"Connection test failed: {e}")
+                messagebox.showerror("Test Error", f"Connection test failed: {e}")
+
+        threading.Thread(target=ping_test, daemon=True).start()
+        self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Testing connection...")
+        logging.info("Testing connection...")
+
+    def connect(self):
+        """Establish RDP connection"""
+        if not self.server_var.get():
+            messagebox.showerror("Error", "Server address is required")
+            logging.error("Server address is required for connection")
+            return
+        if not self.username_var.get():
+            messagebox.showerror("Error", "Username is required")
+            logging.error("Username is required for connection")
+            return
+        
+        password = simpledialog.askstring("Password", "Enter Potter password:", 
+                                        show="*", parent=self.root)
+        if not password:
+            messagebox.showerror("Error", "Password is required")
+            logging.error("Password is required for connection")
+            return
+            
+        if not self.validate_password(password):
+            messagebox.showerror("Error", 
+                               "Password must be at least 8 characters with uppercase, "
+                               "lowercase, digits, and special characters")
+            logging.error("Invalid password: must be at least 8 characters with uppercase, lowercase, digits, and special characters")
+            return
+
+        cmd = self.build_command()
+        cmd.extend(['/p:' + password])
+        server_name = self.server_var.get()
+        
+        def run_connection():
+            try:
+                connection_process = subprocess.Popen(cmd)
+                self.connection_processes.append({
+                    'process': connection_process,
+                    'server': server_name,
+                    'started': time.strftime('%H:%M:%S')
+                })
+                
+                self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Connected to {server_name} "
+                                  f"(Total: {len(self.connection_processes)})")
+                logging.info(f"Connected to {server_name} (Total: {len(self.connection_processes)})")
+                self.update_disconnect_button()
+                
+                connection_process.wait()
+                
+                self.connection_processes = [conn for conn in self.connection_processes 
+                                           if conn['process'] != connection_process]
+                
+                self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Connection to {server_name} "
+                                  f"closed (Active: {len(self.connection_processes)})")
+                logging.info(f"Connection to {server_name} closed (Active: {len(self.connection_processes)})")
+                self.update_disconnect_button()
+                
+            except Exception as e:
+                self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Connection to {server_name} failed: {e}")
+                logging.error(f"Connection to {server_name} failed: {e}")
+                messagebox.showerror("Connection Error", 
+                                   f"Failed to start connection to {server_name}: {e}")
+                self.connection_processes = [conn for conn in self.connection_processes 
+                                           if conn.get('process') != connection_process]
+                self.update_disconnect_button()
+        
+        threading.Thread(target=run_connection, daemon=True).start()
+        self.status_var.set(f"[{time.strftime('%H:%M:%S')}] Connecting to {server_name}...")
+        logging.info(f"Connecting to {server_name}...")
+
+    def update_disconnect_button(self):
+        """Update disconnect button state"""
+        active_count = len(self.connection_processes)
+        if active_count > 0:
+            self.disconnect_btn.config(text=f"Disconnect All ({active_count})", 
+                                     state=tk.NORMAL)
+        else:
+            self.disconnect_btn.config(text="Disconnect All", state=tk.DISABLED)
+
+    def disconnect_all(self):
+        """Disconnect all active connections"""
+        if not self.connection_processes:
+            messagebox.showinfo("Info", "No active connections to disconnect")
+            logging.info("No active connections to disconnect")
+            return
+            
+        disconnected_count = 0
+        for conn in self.connection_processes[:]:
+            try:
+                conn['process'].terminate()
+                disconnected_count += 1
+            except Exception as e:
+                logging.error(f"Error disconnecting from {conn['server']}: {e}")
+        
+        self.connection_processes.clear()
+        self.status_var.set(f"[{time.strftime('%H:%M:%S')}] "
+                          f"Disconnected {disconnected_count} connection(s)")
+        logging.info(f"Disconnected {disconnected_count} connection(s)")
+        self.update_disconnect_button()
+
+    def show_connections(self):
+        """Show active connections window"""
+        if not self.connection_processes:
+            messagebox.showinfo("Active Connections", "No active connections")
+            logging.info("No active connections to show")
+            return
+            
+        conn_window = tk.Toplevel(self.root)
+        conn_window.title("Active RDP Connections")
+        conn_window.geometry("600x300")
+        conn_window.configure(bg=self.theme.get_color("primary_bg"))
+        
+        columns = ('Server', 'Started', 'Status')
+        tree = ttk.Treeview(conn_window, columns=columns, show='headings', height=10)
+        
+        tree.heading('Server', text='Server')
+        tree.heading('Started', text='Started')
+        tree.heading('Status', text='Status')
+        
+        tree.column('Server', width=200)
+        tree.column('Started', width=100)
+        tree.column('Status', width=100)
+        
+        for i, conn in enumerate(self.connection_processes):
+            status = "Running" if conn['process'].poll() is None else "Closed"
+            tree.insert('', 'end', values=(conn['server'], conn['started'], status))
+        
+        tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        btn_frame = ttk.Frame(conn_window)
+        btn_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+        
+        def disconnect_selected():
+            selection = tree.selection()
+            if not selection:
+                messagebox.showwarning("Warning", "Please select a connection to disconnect")
+                logging.warning("No connection selected for disconnection")
+                return
+                
+            item = tree.item(selection[0])
+            server_name = item['values'][0]
+            
+            for conn in self.connection_processes[:]:
+                if conn['server'] == server_name:
+                    try:
+                        conn['process'].terminate()
+                        self.connection_processes.remove(conn)
+                        tree.delete(selection[0])
+                        self.update_disconnect_button()
+                        self.status_var.set(f"[{time.strftime('%H:%M:%S')}] "
+                                          f"Disconnected from {server_name}")
+                        logging.info(f"Disconnected from {server_name}")
+                        break
+                    except Exception as e:
+                        messagebox.showerror("Error", 
+                                           f"Failed to disconnect from {server_name}: {e}")
+                        logging.error(f"Failed to disconnect from {server_name}: {e}")
+        
+        def refresh_list():
+            for item in tree.get_children():
+                tree.delete(item)
+            for conn in self.connection_processes:
+                status = "Running" if conn['process'].poll() is None else "Closed"
+                tree.insert('', 'end', values=(conn['server'], conn['started'], status))
+        
+        ttk.Button(btn_frame, text="Disconnect Selected", 
+                  command=disconnect_selected).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_frame, text="Refresh", 
+                  command=refresh_list).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_frame, text="Close", 
+                  command=conn_window.destroy).pack(side=tk.RIGHT)
+
+def main():
+    """Main application entry point"""
+    # Redirect stdout/stderr to /dev/null to detach from terminal
+    if os.name == 'posix':
+        with open(os.devnull, 'w') as devnull:
+            os.dup2(devnull.fileno(), 1)  # Redirect stdout
+            os.dup2(devnull.fileno(), 2)  # Redirect stderr
+    
+    root = tk.Tk()
+    app = XFreeRDPWrapper(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
