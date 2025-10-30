@@ -2,7 +2,7 @@
 <table>
   <tr>
     <td style="text-align: center; vertical-align: middle; padding: 0;">
-      <img src="https://gitlab.moesol.com/michael.zietlow/blogs/-/raw/main/scripts/ZRDP/images/zrdp_logo.png" alt="ZRDP Logo"/>
+      <img src="https://github.com/MoesolMike/ZRDP/blob/main/images/zrdp_logo.png" alt="ZRDP Logo"/>
     </td>
     <td style="text-align: center; vertical-align: middle; padding: 10px;">
       <div style="display: flex; flex-direction: column; justify-content: center; height: 256px;">
@@ -24,8 +24,8 @@ ZRDP is a powerful **XFreeRDP GUI Wrapper**. A user-friendly graphical interface
 <table>
   <tr>
     <td style="text-align: center; vertical-align: middle; padding: 0;">
-      <img src="https://gitlab.moesol.com/michael.zietlow/blogs/-/raw/main/scripts/ZRDP/images/zrdp_home.png" alt="ZRDP Home" width="400"/>
-      <img src="https://gitlab.moesol.com/michael.zietlow/blogs/-/raw/main/scripts/ZRDP/images/zrdp_prefs.png" alt="ZRDP Preferences" width="400"/>
+      <img src="https://github.com/MoesolMike/ZRDP/blob/main/images/zrdp_home.png" alt="ZRDP Home" width="400"/>
+      <img src="https://github.com/MoesolMike/ZRDP/blob/main/images/zrdp_prefs.png" alt="ZRDP Preferences" width="400"/>
     </td>
   </tr>
 </table>
@@ -39,7 +39,6 @@ To use ZRDP, ensure the following prerequisites are met:
 ### Software Requirements
 - **Python 3.6+**: The wrapper is written in Python and requires a modern version of Python.
 - **Tkinter**: A GUI library for Python, included by default in most Python installations.
-- **[XFREERDP-FIPS**: FIPS Compliant build of FreeRDP 3.16+ client must be installed and accessible at `/usr/local/bin/xfreerdp`.](https://gitlab.moesol.com/michael.zietlow/blogs/-/tree/main/builds/xfreerdp)
 - **Redmine Markdown Support**: For documentation purposes.
 
 ### System Requirements
