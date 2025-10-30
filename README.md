@@ -67,8 +67,9 @@ To use ZRDP, ensure the following prerequisites are met:
 - Supports smartcard authentication for secure connections.
 
 ### 3. **FIPS Compliance**
-- Enables FIPS mode for secure remote desktop connections.
-- Provides detailed notes on configuring Kerberos authentication for FIPS compliance.
+- Xfree RDP does not build by default withj FIPS COmpliant ciphers, I will attach a readme_fips.txt with compile instructions.
+- ZRDP has a FIPS mode checkbox you can select when server also renforces FIPS ciphers for secure remote desktop connections
+- Notessection on configuring Kerberos authentication in order to connect to FIPS compliance workstations on corporate domains.
 
 ### 4. **Profile Management**
 - Save, load, delete, and create new connection profiles.
