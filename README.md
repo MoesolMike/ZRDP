@@ -44,7 +44,7 @@ To use ZRDP, ensure the following prerequisites are met:
 ### System Requirements
 - **Linux Environment**: The wrapper is designed for Linux systems.
 - **Smartcard Reader**: For smartcard authentication, ensure a compatible smartcard reader is connected.
-- **FIPS-Compliant Environment**: For FIPS mode, the server must be configured with Kerberos authentication.
+- **FIPS-Compliant Environment**: For FIPS mode, the server must be configured with Kerberos authentication to connect to enterprise joined Windows servers.
 
 ---
 
@@ -66,10 +66,10 @@ To use ZRDP, ensure the following prerequisites are met:
 - Provides a dropdown menu for selecting smartcards, with white background and black text for clarity.
 - Supports smartcard authentication for secure connections.
 
-### 3. **FIPS Compliance**
-- Xfree RDP does not build by default withj FIPS COmpliant ciphers, I will attach a readme_fips.txt with compile instructions.
-- ZRDP has a FIPS mode checkbox you can select when server also renforces FIPS ciphers for secure remote desktop connections
-- Notessection on configuring Kerberos authentication in order to connect to FIPS compliance workstations on corporate domains.
+### 3. **FIPS Compatability** (Best Effort)
+- Xfree RDP does not build by default with FIPS Compliant ciphers. I will attach a readme_fips.txt in which I gave my best effort to restrict xfreerdp to only compile with fips approved ciphers.
+- ZRDP has a FIPS mode checkbox you can select when server also renforces FIPS ciphers for secure remote desktop connections.
+- Notes section on configuring Kerberos authentication in order to connect to FIPS compliance workstations on corporate domains.
 
 ### 4. **Profile Management**
 - Save, load, delete, and create new connection profiles.
