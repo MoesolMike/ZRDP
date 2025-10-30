@@ -3,7 +3,7 @@
 ZRDP, an XFreeRDP GUI Wrapper with Color Preferences and Smartcard Support.
 Package: zrdp
 Version: 1.0.1.4
-Author: Michael Zietlow
+Author: MoesolMike
 """
 
 import tkinter as tk
@@ -350,6 +350,7 @@ class XFreeRDPWrapper:
             logging.error(f"Failed to set icon: {e}")
 
         # Configuration file path
+        # TODO: Need to stick this into prefrences.
         self.config_file = os.path.expanduser("~/.xfreerdp_profiles.json")
         self.profiles = self.load_profiles()
         
@@ -531,7 +532,9 @@ class XFreeRDPWrapper:
         ttk.Label(settings_frame, text="Domain:").grid(row=1, column=2, sticky=tk.W, 
                                                       padx=(spacing("medium"), spacing("small")), 
                                                       pady=spacing("small"))
-        self.domain_var = tk.StringVar(value="moesol.local")
+        # Using default WORKGROUP. Replace with yours.
+        # TODO: Need to put this in Prefrences.
+        self.domain_var = tk.StringVar(value="WORKGROUP")
         ttk.Entry(settings_frame, textvariable=self.domain_var, width=15).grid(
             row=1, column=3, padx=(0, spacing("small")), pady=spacing("small"))
         
