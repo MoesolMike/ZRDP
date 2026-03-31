@@ -11,6 +11,33 @@ When running RDP on or against FIPS MODE enabled systems, it is important to ens
 * **Enterprise Ready**: Includes GSSAPI, PKCS#11, and smart card (PCSC) support
 * **Audio & Printing**: PulseAudio and CUPS support for complete desktop support.
 
+## Build Environment Prerequsites
+
+* Here is an Ubuntu build environment Example. Ensure you have the following packages installed.
+```
+sudo apt install -y \
+    build-essential cmake git pkg-config \
+    libssl-dev \
+    libx11-dev libxext-dev libxinerama-dev libxcursor-dev \
+    libxkbfile-dev libxv-dev libxi-dev libxdamage-dev \
+    libxrender-dev libxrandr-dev libxfixes-dev \
+    libpulse-dev \
+    libcups2-dev \
+    libkrb5-dev \
+    libpcsclite-dev \
+    libpkcs11-helper-dev \
+    libusb-1.0-0-dev \
+    libwayland-dev \
+    libfuse3-dev \
+    libudev-dev \
+    libdbus-glib-1-dev \
+    libsystemd-dev \
+    uuid-dev \
+    xmlto \
+    xsltproc
+
+```
+
 ## Build Configuration
 
 The build was configured with the following CMake parameters:
