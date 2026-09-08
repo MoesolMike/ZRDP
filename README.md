@@ -1,4 +1,3 @@
-# ZRDP
 <table>
   <tr>
     <td style="text-align: center; vertical-align: middle; padding: 0;">
@@ -6,8 +5,8 @@
     </td>
     <td style="text-align: center; vertical-align: middle; padding: 10px;">
       <div style="display: flex; flex-direction: column; justify-content: center; height: 256px;">
-        <h1 style="font-size: 128px; font-weight: bold; margin: 0;">ZRDP v1.1.0.4</h1>
-        <p style="font-size: 32px; margin: 10px 0 0 0;">XFreeRDP GUI Wrapper with YubiKey & Multi Desktop Management support.</p>
+        <h1 style="font-size: 128px; font-weight: bold; margin: 0;">ZRDP v1.2.1</h1>
+        <p style="font-size: 32px; margin: 10px 0 0 0;">XFreeRDP GUI Wrapper with SmartCard, YubiKey, Kerberos, FIPS, and Multi-Desktop Management support.</p>
       </div>
     </td>
   </tr>
@@ -15,7 +14,7 @@
 
 ## Overview
 
-ZRDP is a powerful **XFreeRDP GUI Wrapper**. A user-friendly graphical interface designed to simplify xfreerdp usage and enhance the management of remote desktop connections. This wrapper provides a professional, secure, and customizable experience for users who need advanced remote desktop functionality, including **smartcard support** and **FIPS compliance**
+ZRDP is a Python-based GUI wrapper for `xfreerdp`. It provides a simple interface for managing multiple RDP connections and supports **SmartCard/YubiKey authentication**, **Kerberos**, and **FIPS mode**.
 
 ---
 
@@ -34,111 +33,275 @@ ZRDP is a powerful **XFreeRDP GUI Wrapper**. A user-friendly graphical interface
 
 ## Requirements
 
-To use ZRDP, ensure the following prerequisites are met:
-
 ### Software Requirements
-- **Python 3.6+**: The wrapper is written in Python and requires a modern version of Python.
-- **Tkinter**: A GUI library for Python, included by default in most Python installations.
-- **Redmine Markdown Support**: For documentation purposes.
+
+- **Python 3.10+**
+- **Tkinter**
+- **XFreeRDP / FreeRDP 3.16+**
+- **Kerberos tools**
+  - `krb5-user`
+  - `krb5-config`
+  - `kinit`
+  - `klist`
+
+Install common dependencies on Debian/Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install python3 python3-tk krb5-user krb5-config
+```
 
 ### System Requirements
-- **Linux Environment**: The wrapper is designed for Linux systems.
-- **Smartcard Reader**: For smartcard authentication, ensure a compatible smartcard reader is connected.
-- **FIPS-Compliant Environment**: For FIPS mode, the server must be configured with Kerberos authentication to connect to enterprise joined Windows servers.
+
+- Linux or Unix-like system with X11.
+- Smartcard reader for SmartCard/YubiKey authentication.
+- Kerberos configuration for FIPS/domain environments.
+- FIPS-capable FreeRDP build when using FIPS mode.
+
+---
+
+## Default Paths
+
+Default `xfreerdp` path:
+
+```text
+/usr/local/bin/xfreerdp
+```
+
+Default ZRDP profile/config file:
+
+```text
+~/.zrdp.json
+```
+
+Both paths can be changed in **Preferences**.
 
 ---
 
 ## Features
 
-### 1. **Dynamic Appearance Customization**
-- **Color Profiles**: Inspired by popular themes like Remmina and Ubuntu, users can select from multiple color profiles, including:
-  - Remmina Classic
-  - Remmina Dark
-  - Remmina Blue
-  - Ubuntu Style
-  - Professional Dark
-  - Arctic Blue
-  - Midnight Blue
-- **Spacing Profiles**: Adjust layout padding with options like Compact, Standard, and Spacious.
+### Profile Management
 
-### 2. **Smartcard Support**
-- Automatically detects available smartcards using `xfreerdp /list:smartcard`.
-- Provides a dropdown menu for selecting smartcards, with white background and black text for clarity.
-- Supports smartcard authentication for secure connections.
+- Save, load, delete, and manage RDP profiles.
+- Profiles are stored in JSON format.
+- Default profile file:
 
-### 3. **FIPS Compatability** (Best Effort)
-- Xfree RDP does not build by default with FIPS Compliant ciphers. I will attach a readme_fips.txt in which I gave my best effort to restrict xfreerdp to only compile with fips approved ciphers.
-- ZRDP has a FIPS mode checkbox you can select when server also renforces FIPS ciphers for secure remote desktop connections.
-- Notes section on configuring Kerberos authentication in order to connect to FIPS compliance workstations on corporate domains.
+```text
+~/.zrdp.json
+```
 
-### 4. **Profile Management**
-- Save, load, delete, and create new connection profiles.
-- Profiles are stored in a JSON configuration file (`~/.xfreerdp_profiles.json`) for easy portability.
+- Profile config file location can be changed in **Preferences**.
 
-### 5. **Connection Management**
-- Supports multiple simultaneous connections.
-- Provides a "Disconnect All" button to terminate all active connections.
-- Displays active connections in a separate window with details like server name, start time, and status.
+### SmartCard / YubiKey Support
 
-### 6. **Advanced Connection Settings**
-- Configure server, port, username, domain, screen size, color depth, and fullscreen mode.
-- Security settings include NLA, TLS, EXT, certificate ignoring, and session timeout.
-- Smartcard and FIPS mode options for enhanced security.
+- Detects smartcards using:
 
-### 7. **Command Preview**
-- Generates the exact `xfreerdp` command based on user settings.
-- Allows users to copy the command to the clipboard for manual execution.
+```bash
+xfreerdp /list:smartcard
+```
 
-### 8. **Connection Testing**
-- Tests server connectivity using `ping` to ensure the server is reachable before attempting a connection.
+- Provides a dropdown for selecting detected smartcards.
+- Supports manual refresh of smartcard readers.
+
+### Kerberos Support
+
+- Enable or disable Kerberos.
+- Uses `klist` to check for `KRBTGT` tickets.
+- Runs `kinit` if no valid ticket is found.
+
+### FIPS Support
+
+- FIPS Mode checkbox in Security Settings.
+- Adds this option to the generated command:
+
+```text
++fipsmode
+```
+
+- Includes built-in FIPS/Kerberos configuration notes.
+
+### Connection Management
+
+- Supports multiple active RDP sessions.
+- Show active connections.
+- Disconnect selected sessions.
+- Disconnect all sessions.
+
+### Display Options
+
+- Custom resolution.
+- Fullscreen mode.
+- Color depth.
+- Session timeout.
+
+### Command Preview
+
+- Shows the generated `xfreerdp` command.
+- Allows copying the command to the clipboard.
+
+### Cleaner Interface
+
+- Collapsible sections for:
+  - Security Settings
+  - Kerberos Settings
+  - Smartcard Settings
+  - Display Settings
+  - FIPS Configuration Notes
 
 ---
 
-## How It Works
+## XFreeRDP Build Prerequisites
 
-### Workflow
-1. **Profile Selection**: Choose or create a connection profile.
-2. **Smartcard Detection**: Automatically scans for smartcards and updates the dropdown menu.
-3. **Connection Settings**: Configure server, security, and display settings.
-4. **Command Generation**: Builds the `xfreerdp` command dynamically based on user input.
-5. **Connection Management**: Start, monitor, and terminate remote desktop connections.
+For FIPS and smartcard support, build **XFreeRDP 3.16+** into `/usr/local` with:
 
-### Smartcard Integration
-The wrapper uses `xfreerdp /list:smartcard` to detect available smartcards. It parses the output to extract details like the certificate DN, reader name, and slot ID. Users can select a smartcard from the dropdown menu for authentication.
+```bash
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DWITH_GSSAPI=ON \
+    -DWITH_OPENSSL=ON \
+    -DWITH_FIPS=ON \
+    -DWITH_X11=ON \
+    -DWITH_PULSE=ON \
+    -DWITH_CUPS=ON \
+    -DWITH_CHANNELS=ON \
+    -DWITH_CLIENT=ON \
+    -DWITH_SERVER=OFF \
+    -DWITH_ALSA=OFF \
+    -DWITH_FFMPEG=OFF \
+    -DWITH_PKCS11=ON \
+    -DWITH_INTERNAL_MD4=OFF \
+    -DWITH_INTERNAL_MD5=OFF \
+    -DWITH_INTERNAL_RC4=OFF \
+    -DWITH_CLIENT_WAYLAND=OFF \
+    -DWITH_PCSC=ON \
+    -DWITH_SDL3=OFF ..
+```
+
+### Required Build Packages
+
+- `libssl-dev`
+- `libgssapi-krb5-dev`
+- `libpcsclite-dev`
+- `libx11-dev`
+- `libpulse-dev`
+- `libcups2-dev`
+- `cmake`
+- `gcc` or `clang`
+- `make` or `ninja`
+
+Optional:
+
+- `libwayland-dev`
+- `libsdl2-dev`
+
+---
+
+## Usage
+
+Run ZRDP:
+
+```bash
+python3 zrdp.py
+```
+
+Or, if executable:
+
+```bash
+./zrdp
+```
+
+Basic workflow:
+
+1. Open ZRDP.
+2. Create or select a profile.
+3. Configure server, username, domain, security, Kerberos, smartcard, and display settings.
+4. Save the profile if needed.
+5. Click **Connect**.
 
 ---
 
 ## Example Configuration
 
-### Sample Profile
+Example `~/.zrdp.json` profile:
+
 ```json
 {
-  "server": "rdp.example.com",
-  "port": "3389",
-  "username": "user1",
-  "domain": "example.local",
-  "size": "1920x1080",
-  "fullscreen": false,
-  "bpp": "32",
-  "sec_nla": true,
-  "sec_tls": true,
-  "sec_ext": true,
-  "cert_ignore": true,
-  "fips": true,
-  "session_timeout": "30",
-  "smartcard": "SmartCard Reader 1"
+  "preferences": {
+    "config_file": "/home/user/.zrdp.json",
+    "xfreerdp_path": "/usr/local/bin/xfreerdp",
+    "theme": "Dark Professional",
+    "log_dir": "~/zrdp.log",
+    "log_level": "INFO"
+  },
+  "Example RDP Server": {
+    "server": "rdp.example.com",
+    "port": "3389",
+    "username": "user1",
+    "domain": "example.local",
+    "size": "1920x1080",
+    "fullscreen": false,
+    "bpp": "32",
+    "sec_nla": true,
+    "sec_tls": true,
+    "sec_ext": true,
+    "cert_ignore": true,
+    "fips": true,
+    "session_timeout": "30",
+    "kerberos_enabled": true,
+    "kerberos_principal": "user1@EXAMPLE.LOCAL",
+    "smartcard": "None"
+  }
 }
 ```
 
-### Generated Command
+Example generated command:
+
 ```bash
-/usr/local/bin/xfreerdp /v:rdp.example.com /port:3389 /u:user1 /d:example.local /size:1920x1080 /bpp:32 /sec:nla /sec:tls /sec:ext /cert:ignore +fipsmode /smartcard:SmartCardReader1 /timeout:1800
+/usr/local/bin/xfreerdp \
+  /v:rdp.example.com \
+  /u:user1 \
+  /d:example.local \
+  /sec:nla \
+  /sec:tls \
+  /sec:ext \
+  /cert:ignore \
+  +fipsmode \
+  /size:1920x1080 \
+  /bpp:32 \
+  /timeout:1800 \
+  /log-level:INFO
 ```
-
-## Conclusion
-
-ZRDP an **XFreeRDP GUI Wrapper** is a feature-rich tool for managing remote desktop connections with ease and security. Its intuitive interface, smartcard support, and FIPS compliance make it ideal for professional environments. Whether you're connecting to a single server or managing multiple connections, this wrapper streamlines the process while offering advanced customization options.
 
 ---
 
+## FIPS Notes
 
+For RDP on Windows systems enforcing FIPS, setting Kerberos/SPN configuration is required on the Windows side.
+
+Example: (Run setspn on a domain controller)
+
+```text
+C:> setspn -A TERMSRV/server3.domain.com SERVER3
+```
+
+Expected format:
+
+```text
+TERMSRV/<SERVER_FQDN> <SERVER_SHORT_NAME>
+```
+
+---
+
+## Known Issues
+
+- Theme changes may require restarting the application.
+- Default `xfreerdp` path is `/usr/local/bin/xfreerdp`; change it in **Preferences** if needed.
+- Modular mode is disabled.
+
+---
+
+## References
+
+[1] Python Software Foundation, Python 3.10 documentation.  
+[2] Python Software Foundation, Tkinter documentation.  
+[3] FreeRDP project documentation for `xfreerdp`.  
+[4] MIT Kerberos documentation for `kinit` and `klist`.
